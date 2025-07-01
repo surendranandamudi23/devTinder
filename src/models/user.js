@@ -2,22 +2,6 @@ const mongoose = require("mongoose");
 const validator = require("validator");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-function validatePassword(value) {
-  const errors = [];
-  if (value.length < 6) {
-    errors.push("at least 6 characters");
-  }
-  if (!/[A-Z]/.test(value)) {
-    errors.push("an uppercase letter");
-  }
-  if (!/\d/.test(value)) {
-    errors.push("a number");
-  }
-  if (!/[!@#$%^&*]/.test(value)) {
-    errors.push("a special character");
-  }
-  return errors;
-}
 
 const userSchema = new mongoose.Schema(
   {
@@ -39,7 +23,7 @@ const userSchema = new mongoose.Schema(
       required: true,
       lowercase: true,
       unique: true,
-      trim: true,
+      index: true,
       validate(value) {
         if (!validator.isEmail(value)) {
           throw new Error(`Please provide valid email ${value}`);
@@ -57,10 +41,10 @@ const userSchema = new mongoose.Schema(
     },
     gender: {
       type: String,
-      validate(value) {
-        if (!["male", "female", "others"].includes(value)) {
-          throw new Error("Gender must be 'male', 'female', or 'others'.");
-        }
+      enum: {
+        values: ["male", "female", "others"],
+        message:
+          "Gender must be 'male', 'female', or 'others'. {VALUE} is invalid",
       },
     },
     photoUrl: {
@@ -85,26 +69,9 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
-
-userSchema.pre("save", function (next) {
-  if (this.gender) {
-    this.gender = this.gender.toLowerCase().trim();
-  }
-
-  const passwordErrors = validatePassword(this.password);
-  if (passwordErrors.length > 0) {
-    const err = new Error(
-      `Password must contain ${passwordErrors.join(", ")}.`
-    );
-    return next(err);
-  }
-
-  next();
-});
-
 userSchema.methods.getJwt = async function () {
   const user = this;
-  const token = await jwt.sign({ _id: user?._id }, "SURENDRA@FIST1", {
+  const token = jwt.sign({ _id: user?._id }, "SURENDRA@FIST1", {
     expiresIn: "1d",
   });
   return token;
