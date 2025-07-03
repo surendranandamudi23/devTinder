@@ -9,9 +9,9 @@ const {
 profileRouter.get("/profile/view", userAuth, async (req, res) => {
   try {
     const userdata = req.user;
-    res.send(userdata);
+    res.json({ data: userdata });
   } catch (err) {
-    res.status(500).send(err?.message || "Something went wrong");
+    res.status(500).json({ message: err?.message || "Something went wrong" });
   }
 });
 profileRouter.patch("/profile/edit", userAuth, async (req, res) => {
@@ -27,7 +27,7 @@ profileRouter.patch("/profile/edit", userAuth, async (req, res) => {
       data: result,
     });
   } catch (err) {
-    res.status(400).send(err?.message || "Something went wrong");
+    res.status(400).json({ message: err?.message || "Something went wrong" });
   }
 });
 profileRouter.patch("/profile/password", userAuth, async (req, res) => {
@@ -45,9 +45,6 @@ profileRouter.patch("/profile/password", userAuth, async (req, res) => {
         `New password must contain ${passwordErrors.join(", ")}.`
       );
     }
-    // if(!validator.isStrongPassword(newPassword)){
-    //   throw new Error("Password should be strong");
-    // }
     const userData = req.user;
     const isMatch = await userData.verifyPassword(password);
     if (isMatch) {
@@ -62,7 +59,7 @@ profileRouter.patch("/profile/password", userAuth, async (req, res) => {
       throw new Error("Incorrect password");
     }
   } catch (err) {
-    res.status(400).send(err?.message || "Something went wrong");
+    res.status(400).json({ message: err?.message || "Something went wrong" });
   }
 });
 module.exports = { profileRouter };

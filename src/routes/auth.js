@@ -22,9 +22,20 @@ authRouter.post("/signup", async (req, res) => {
     const user = new User(userRes);
     const result = await user.save();
     console.log(result);
-    res.send("User created");
+    res.json({
+      message: "Signup successful",
+      data: result,
+    });
   } catch (err) {
-    res.status(400).send(err?.message || "Something went wrong");
+    res.status(404).json({
+      message: err?.message || "Something went wrong",
+      errors: {
+        email: err?.email || "",
+        password: err?.password || "",
+        firstName: err?.firstName || "",
+        lastName: err?.lastName || "",
+      },
+    });
   }
 });
 authRouter.post("/login", async (req, res) => {
@@ -42,23 +53,34 @@ authRouter.post("/login", async (req, res) => {
         res.cookie("token", token, {
           expires: new Date(Date.now() + 12 * 3600000),
         });
-        res.send("Login successful");
+        res.json({
+          message: "Login successful",
+          data: userRes,
+        });
       } else {
-        res.status(400).send("Invalid credentials");
+        res.status(400).json({
+          message: "Invalid credentials",
+        });
       }
     } else {
-      res.status(400).send("Invalid credentials");
+      res.status(400).json({
+        message: "Invalid credentials",
+      });
     }
   } catch (err) {
-    res.status(500).send("Something went wrong");
+    res.status(500).json({
+      message: err?.message || "Something went wrong",
+    });
   }
 });
 authRouter.post("/logout", async (req, res) => {
   try {
-    res.clearCookie("token");
+    res.cookie("token", null, { expires: new Date(Date.now()) });
     res.send();
   } catch (err) {
-    res.status(500).send("Something went wrong");
+    res.status(500).json({
+      message: err?.message || "Something went wrong",
+    });
   }
 });
 
