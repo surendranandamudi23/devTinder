@@ -54,6 +54,13 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
 userRouter.get("/feed", userAuth, async (req, res) => {
   try {
     const loggedInUser = req?.user;
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10;
+
+    // Enforce min/max bounds
+    if (page < 1) page = 1;
+    if (limit < 1) limit = 1;
+    if (limit > 100) limit = 100;
     const allNotificationId = await ConnectionRequest.find({
       $or: [
         {
@@ -66,23 +73,26 @@ userRouter.get("/feed", userAuth, async (req, res) => {
     }).select("fromUserId toUserId");
     // .populate("fromUserId", USER_SAFE_DATA_TO_SEND);
 
-    const newMap = new Set();
+    const newMap = new Set([loggedInUser?._id?.toString()]);
     allNotificationId.forEach((res) => {
       newMap.add(res?.toUserId);
       newMap.add(res?.fromUserId);
     });
+    const query = { _id: { $nin: Array.from(newMap) } };
+    const totalCount = await User.countDocuments(query);
     const feed = await User.find({
-      $and: [
-        {
-          _id: { $nin: Array.from(newMap) },
-        },
-        {
-          _id: { $ne: loggedInUser?._id },
-        },
-      ],
+      _id: { $nin: Array.from(newMap) },
     }).select(USER_SAFE_DATA_TO_SEND);
     res.json({
       data: feed,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+        hasNext: page < Math.ceil(totalCount / limit),
+        hasPrev: page > 1,
+      },
     });
   } catch (err) {
     res.status(400).send(`Error : ${err?.message || "Something went wrong"}`);
